@@ -25,17 +25,17 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
-
 import json
+from math import sqrt
 import struct
 import sys
-from time import time
+from time import sleep
 
 from bno055 import registers
 from bno055.connectors.Connector import Connector
 from bno055.params.NodeParameters import NodeParameters
 
+from geometry_msgs.msg import Quaternion
 from rclpy.node import Node
 from rclpy.qos import QoSProfile
 from sensor_msgs.msg import Imu, MagneticField, Temperature
@@ -64,7 +64,7 @@ class SensorService:
         """Configure the IMU sensor hardware."""
         self.node.get_logger().info('Configuring device...')
         try:
-            data = self.con.receive(registers.CHIP_ID, 1)
+            data = self.con.receive(registers.BNO055_CHIP_ID_ADDR, 1)
             if data[0] != registers.BNO055_ID:
                 raise IOError('Device ID=%s is incorrect' % data)
             # print("device sent ", binascii.hexlify(data))
@@ -75,19 +75,19 @@ class SensorService:
             sys.exit(1)
 
         # IMU connected => apply IMU Configuration:
-        if not (self.con.transmit(registers.OPER_MODE, 1, bytes([registers.OPER_MODE_CONFIG]))):
+        if not (self.con.transmit(registers.BNO055_OPR_MODE_ADDR, 1, bytes([registers.OPERATION_MODE_CONFIG]))):
             self.node.get_logger().warn('Unable to set IMU into config mode.')
 
-        if not (self.con.transmit(registers.PWR_MODE, 1, bytes([registers.PWR_MODE_NORMAL]))):
+        if not (self.con.transmit(registers.BNO055_PWR_MODE_ADDR, 1, bytes([registers.POWER_MODE_NORMAL]))):
             self.node.get_logger().warn('Unable to set IMU normal power mode.')
 
-        if not (self.con.transmit(registers.PAGE_ID, 1, bytes([0x00]))):
+        if not (self.con.transmit(registers.BNO055_PAGE_ID_ADDR, 1, bytes([0x00]))):
             self.node.get_logger().warn('Unable to set IMU register page 0.')
 
-        if not (self.con.transmit(registers.SYS_TRIGGER, 1, bytes([0x00]))):
+        if not (self.con.transmit(registers.BNO055_SYS_TRIGGER_ADDR, 1, bytes([0x00]))):
             self.node.get_logger().warn('Unable to start IMU.')
 
-        if not (self.con.transmit(registers.UNIT_SEL, 1, bytes([0x83]))):
+        if not (self.con.transmit(registers.BNO055_UNIT_SEL_ADDR, 1, bytes([0x83]))):
             self.node.get_logger().warn('Unable to set IMU units.')
 
         # The sensor placement configuration (Axis remapping) defines the
@@ -103,14 +103,27 @@ class SensorService:
             'P6': bytes(b'\x21\x07'),
             'P7': bytes(b'\x24\x05')
         }
-        if not (self.con.transmit(registers.AXIS_MAP_CONFIG, 2,
+        if not (self.con.transmit(registers.BNO055_AXIS_MAP_CONFIG_ADDR, 2,
                 mount_positions[self.param.placement_axis_remap.value])):
             self.node.get_logger().warn('Unable to set sensor placement configuration.')
+
+        # Show the current sensor offsets
+        print('Current sensor offsets:')
+        self.get_calib_offsets()
+        if (self.param.set_offsets):
+            configured_offsets = \
+                self.set_calib_offsets(
+                    self.param.offset_acc,
+                    self.param.offset_mag,
+                    self.param.offset_gyr)
+            if (configured_offsets):
+                print('Successfully configured sensor offsets to:')
+                self.get_calib_offsets()
 
         # Set Device to NDOF mode
         # data fusion for gyroscope, acceleration sensor and magnetometer enabled
         # absolute orientation
-        if not (self.con.transmit(registers.OPER_MODE, 1, bytes([registers.OPER_MODE_NDOF]))):
+        if not (self.con.transmit(registers.BNO055_OPR_MODE_ADDR, 1, bytes([registers.OPERATION_MODE_NDOF]))):
             self.node.get_logger().warn('Unable to set IMU operation mode into operation mode.')
 
         self.node.get_logger().info('Bosch BNO055 IMU configuration complete.')
@@ -123,13 +136,8 @@ class SensorService:
         mag_msg = MagneticField()
         temp_msg = Temperature()
 
-        # Initialize constants
-        acc_fact = 1000.0
-        mag_fact = 16.0
-        gyr_fact = 900.0
-
         # read from sensor
-        buf = self.con.receive(registers.ACCEL_DATA, 45)
+        buf = self.con.receive(registers.BNO055_ACCEL_DATA_X_LSB_ADDR, 45)
         # Publish raw data
         # TODO: convert rcl Clock time to ros time?
         # imu_raw_msg.header.stamp = node.get_clock().now()
@@ -138,21 +146,34 @@ class SensorService:
         # imu_raw_msg.header.seq = seq
 
         # TODO: make this an option to publish?
-        imu_raw_msg.orientation_covariance[0] = -1
-        imu_raw_msg.linear_acceleration.x = float(
-            struct.unpack('h', struct.pack('BB', buf[0], buf[1]))[0]) / acc_fact
-        imu_raw_msg.linear_acceleration.y = float(
-            struct.unpack('h', struct.pack('BB', buf[2], buf[3]))[0]) / acc_fact
-        imu_raw_msg.linear_acceleration.z = float(
-            struct.unpack('h', struct.pack('BB', buf[4], buf[5]))[0]) / acc_fact
-        imu_raw_msg.linear_acceleration_covariance[0] = -1
-        imu_raw_msg.angular_velocity.x = float(
-            struct.unpack('h', struct.pack('BB', buf[12], buf[13]))[0]) / gyr_fact
-        imu_raw_msg.angular_velocity.y = float(
-            struct.unpack('h', struct.pack('BB', buf[14], buf[15]))[0]) / gyr_fact
-        imu_raw_msg.angular_velocity.z = float(
-            struct.unpack('h', struct.pack('BB', buf[16], buf[17]))[0]) / gyr_fact
-        imu_raw_msg.angular_velocity_covariance[0] = -1
+        imu_raw_msg.orientation_covariance = [
+            self.param.variance_orientation.value[0], 0.0 , 0.0,
+            0.0, self.param.variance_orientation.value[1], 0.0,
+            0.0, 0.0, self.param.variance_orientation.value[2]
+        ]
+
+        imu_raw_msg.linear_acceleration.x = \
+            self.unpackBytesToFloat(buf[0], buf[1]) / self.param.acc_factor.value
+        imu_raw_msg.linear_acceleration.y = \
+            self.unpackBytesToFloat(buf[2], buf[3]) / self.param.acc_factor.value
+        imu_raw_msg.linear_acceleration.z = \
+            self.unpackBytesToFloat(buf[4], buf[5]) / self.param.acc_factor.value
+        imu_raw_msg.linear_acceleration_covariance = [
+            self.param.variance_acc.value[0], 0.0, 0.0,
+            0.0, self.param.variance_acc.value[1], 0.0,
+            0.0, 0.0, self.param.variance_acc.value[2]
+        ]
+        imu_raw_msg.angular_velocity.x = \
+            self.unpackBytesToFloat(buf[12], buf[13]) / self.param.gyr_factor.value
+        imu_raw_msg.angular_velocity.y = \
+            self.unpackBytesToFloat(buf[14], buf[15]) / self.param.gyr_factor.value
+        imu_raw_msg.angular_velocity.z = \
+            self.unpackBytesToFloat(buf[16], buf[17]) / self.param.gyr_factor.value
+        imu_raw_msg.angular_velocity_covariance = [
+            self.param.variance_angular_vel.value[0], 0.0, 0.0,
+            0.0, self.param.variance_angular_vel.value[1], 0.0,
+            0.0, 0.0, self.param.variance_angular_vel.value[2]
+        ]
         # node.get_logger().info('Publishing imu message')
         self.pub_imu_raw.publish(imu_raw_msg)
 
@@ -160,25 +181,37 @@ class SensorService:
         # Publish filtered data
         # imu_msg.header.stamp = node.get_clock().now()
         imu_msg.header.frame_id = self.param.frame_id.value
+
+        q = Quaternion()
         # imu_msg.header.seq = seq
-        imu_msg.orientation.w = float(struct.unpack('h', struct.pack('BB', buf[24], buf[25]))[0])
-        imu_msg.orientation.x = float(struct.unpack('h', struct.pack('BB', buf[26], buf[27]))[0])
-        imu_msg.orientation.y = float(struct.unpack('h', struct.pack('BB', buf[28], buf[29]))[0])
-        imu_msg.orientation.z = float(struct.unpack('h', struct.pack('BB', buf[30], buf[31]))[0])
-        imu_msg.linear_acceleration.x = float(
-            struct.unpack('h', struct.pack('BB', buf[32], buf[33]))[0]) / acc_fact
-        imu_msg.linear_acceleration.y = float(
-            struct.unpack('h', struct.pack('BB', buf[34], buf[35]))[0]) / acc_fact
-        imu_msg.linear_acceleration.z = float(
-            struct.unpack('h', struct.pack('BB', buf[36], buf[37]))[0]) / acc_fact
-        imu_msg.linear_acceleration_covariance[0] = -1
-        imu_msg.angular_velocity.x = float(
-            struct.unpack('h', struct.pack('BB', buf[12], buf[13]))[0]) / gyr_fact
-        imu_msg.angular_velocity.y = float(
-            struct.unpack('h', struct.pack('BB', buf[14], buf[15]))[0]) / gyr_fact
-        imu_msg.angular_velocity.z = float(
-            struct.unpack('h', struct.pack('BB', buf[16], buf[17]))[0]) / gyr_fact
-        imu_msg.angular_velocity_covariance[0] = -1
+        q.w = self.unpackBytesToFloat(buf[24], buf[25])
+        q.x = self.unpackBytesToFloat(buf[26], buf[27])
+        q.y = self.unpackBytesToFloat(buf[28], buf[29])
+        q.z = self.unpackBytesToFloat(buf[30], buf[31])
+        # TODO(flynneva): replace with standard normalize() function
+        # normalize
+        norm = sqrt(q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w)
+        imu_msg.orientation.x = q.x / norm
+        imu_msg.orientation.y = q.y / norm
+        imu_msg.orientation.z = q.z / norm
+        imu_msg.orientation.w = q.w / norm
+
+        imu_msg.orientation_covariance = imu_raw_msg.orientation_covariance
+
+        imu_msg.linear_acceleration.x = \
+            self.unpackBytesToFloat(buf[32], buf[33]) / self.param.acc_factor.value
+        imu_msg.linear_acceleration.y = \
+            self.unpackBytesToFloat(buf[34], buf[35]) / self.param.acc_factor.value
+        imu_msg.linear_acceleration.z = \
+            self.unpackBytesToFloat( buf[36], buf[37]) / self.param.acc_factor.value
+        imu_msg.linear_acceleration_covariance = imu_raw_msg.linear_acceleration_covariance
+        imu_msg.angular_velocity.x = \
+            self.unpackBytesToFloat(buf[12], buf[13]) / self.param.gyr_factor.value
+        imu_msg.angular_velocity.y = \
+            self.unpackBytesToFloat(buf[14], buf[15]) / self.param.gyr_factor.value
+        imu_msg.angular_velocity.z = \
+            self.unpackBytesToFloat(buf[16], buf[17]) / self.param.gyr_factor.value
+        imu_msg.angular_velocity_covariance = imu_raw_msg.angular_velocity_covariance
         self.pub_imu.publish(imu_msg)
 
         # Publish magnetometer data
@@ -186,11 +219,16 @@ class SensorService:
         mag_msg.header.frame_id = self.param.frame_id.value
         # mag_msg.header.seq = seq
         mag_msg.magnetic_field.x = \
-            float(struct.unpack('h', struct.pack('BB', buf[6], buf[7]))[0]) / mag_fact
+            self.unpackBytesToFloat(buf[6], buf[7]) / self.param.mag_factor.value
         mag_msg.magnetic_field.y = \
-            float(struct.unpack('h', struct.pack('BB', buf[8], buf[9]))[0]) / mag_fact
+            self.unpackBytesToFloat(buf[8], buf[9]) / self.param.mag_factor.value
         mag_msg.magnetic_field.z = \
-            float(struct.unpack('h', struct.pack('BB', buf[10], buf[11]))[0]) / mag_fact
+            self.unpackBytesToFloat(buf[10], buf[11]) / self.param.mag_factor.value
+        mag_msg.magnetic_field_covariance = [
+            self.param.variance_mag.value[0], 0.0, 0.0,
+            0.0, self.param.variance_mag.value[1], 0.0,
+            0.0, 0.0, self.param.variance_mag.value[2]
+        ]
         self.pub_mag.publish(mag_msg)
 
         # Publish temperature
@@ -206,7 +244,7 @@ class SensorService:
 
         Quality scale: 0 = bad, 3 = best
         """
-        calib_status = self.con.receive(registers.CALIB_STAT, 1)
+        calib_status = self.con.receive(registers.BNO055_CALIB_STAT_ADDR, 1)
         sys = (calib_status[0] >> 6) & 0x03
         gyro = (calib_status[0] >> 4) & 0x03
         accel = (calib_status[0] >> 2) & 0x03
@@ -222,7 +260,7 @@ class SensorService:
 
     def get_calib_offsets(self):
         """Read all calibration offsets and print to screen."""
-        accel_offset_read = self.con.receive(registers.ACC_OFFSET, 6)
+        accel_offset_read = self.con.receive(registers.ACCEL_OFFSET_X_LSB_ADDR, 6)
         accel_offset_read_x = (accel_offset_read[1] << 8) | accel_offset_read[
             0]  # Combine MSB and LSB registers into one decimal
         accel_offset_read_y = (accel_offset_read[3] << 8) | accel_offset_read[
@@ -230,7 +268,7 @@ class SensorService:
         accel_offset_read_z = (accel_offset_read[5] << 8) | accel_offset_read[
             4]  # Combine MSB and LSB registers into one decimal
 
-        mag_offset_read = self.con.receive(registers.MAG_OFFSET, 6)
+        mag_offset_read = self.con.receive(registers.MAG_OFFSET_X_LSB_ADDR, 6)
         mag_offset_read_x = (mag_offset_read[1] << 8) | mag_offset_read[
             0]  # Combine MSB and LSB registers into one decimal
         mag_offset_read_y = (mag_offset_read[3] << 8) | mag_offset_read[
@@ -238,7 +276,7 @@ class SensorService:
         mag_offset_read_z = (mag_offset_read[5] << 8) | mag_offset_read[
             4]  # Combine MSB and LSB registers into one decimal
 
-        gyro_offset_read = self.con.receive(registers.GYR_OFFSET, 6)
+        gyro_offset_read = self.con.receive(registers.GYRO_OFFSET_X_LSB_ADDR, 6)
         gyro_offset_read_x = (gyro_offset_read[1] << 8) | gyro_offset_read[
             0]  # Combine MSB and LSB registers into one decimal
         gyro_offset_read_y = (gyro_offset_read[3] << 8) | gyro_offset_read[
@@ -247,19 +285,19 @@ class SensorService:
             4]  # Combine MSB and LSB registers into one decimal
 
         self.node.get_logger().info(
-            'Accel offsets (x y z): %d %d %d' % (
+            '\tAccel offsets (x y z): %d %d %d' % (
                 accel_offset_read_x,
                 accel_offset_read_y,
                 accel_offset_read_z))
 
         self.node.get_logger().info(
-            'Mag offsets (x y z): %d %d %d' % (
+            '\tMag offsets (x y z): %d %d %d' % (
                 mag_offset_read_x,
                 mag_offset_read_y,
                 mag_offset_read_z))
 
         self.node.get_logger().info(
-            'Gyro offsets (x y z): %d %d %d' % (
+            '\tGyro offsets (x y z): %d %d %d' % (
                 gyro_offset_read_x,
                 gyro_offset_read_y,
                 gyro_offset_read_z))
@@ -273,32 +311,35 @@ class SensorService:
         :param gyr_offset:
         """
         # Must switch to config mode to write out
-        if not (self.con.transmit(registers.OPER_MODE, 1, bytes([registers.OPER_MODE_CONFIG]))):
+        if not (self.con.transmit(registers.BNO055_OPR_MODE_ADDR, 1, bytes([registers.OPERATION_MODE_CONFIG]))):
             self.node.get_logger().error('Unable to set IMU into config mode')
-        time.sleep(0.025)
+        sleep(0.025)
 
         # Seems to only work when writing 1 register at a time
         try:
-            self.con.transmit(registers.ACC_OFFSET, 1, bytes([acc_offset[0] & 0xFF]))
-            self.con.transmit(registers.ACC_OFFSET + 1, 1, bytes([(acc_offset[0] >> 8) & 0xFF]))
-            self.con.transmit(registers.ACC_OFFSET + 2, 1, bytes([acc_offset[1] & 0xFF]))
-            self.con.transmit(registers.ACC_OFFSET + 3, 1, bytes([(acc_offset[1] >> 8) & 0xFF]))
-            self.con.transmit(registers.ACC_OFFSET + 4, 1, bytes([acc_offset[2] & 0xFF]))
-            self.con.transmit(registers.ACC_OFFSET + 5, 1, bytes([(acc_offset[2] >> 8) & 0xFF]))
+            self.con.transmit(registers.ACCEL_OFFSET_X_LSB_ADDR, 1, bytes([acc_offset[0] & 0xFF]))
+            self.con.transmit(registers.ACCEL_OFFSET_X_MSB_ADDR, 1, bytes([(acc_offset[0] >> 8) & 0xFF]))
+            self.con.transmit(registers.ACCEL_OFFSET_Y_LSB_ADDR, 1, bytes([acc_offset[1] & 0xFF]))
+            self.con.transmit(registers.ACCEL_OFFSET_Y_MSB_ADDR, 1, bytes([(acc_offset[1] >> 8) & 0xFF]))
+            self.con.transmit(registers.ACCEL_OFFSET_Z_LSB_ADDR, 1, bytes([acc_offset[2] & 0xFF]))
+            self.con.transmit(registers.ACCEL_OFFSET_Z_MSB_ADDR, 1, bytes([(acc_offset[2] >> 8) & 0xFF]))
 
-            self.con.transmit(registers.MAG_OFFSET, 1, bytes([mag_offset[0] & 0xFF]))
-            self.con.transmit(registers.MAG_OFFSET + 1, 1, bytes([(mag_offset[0] >> 8) & 0xFF]))
-            self.con.transmit(registers.MAG_OFFSET + 2, 1, bytes([mag_offset[1] & 0xFF]))
-            self.con.transmit(registers.MAG_OFFSET + 3, 1, bytes([(mag_offset[1] >> 8) & 0xFF]))
-            self.con.transmit(registers.MAG_OFFSET + 4, 1, bytes([mag_offset[2] & 0xFF]))
-            self.con.transmit(registers.MAG_OFFSET + 5, 1, bytes([(mag_offset[2] >> 8) & 0xFF]))
+            self.con.transmit(registers.MAG_OFFSET_X_LSB_ADDR, 1, bytes([mag_offset[0] & 0xFF]))
+            self.con.transmit(registers.MAG_OFFSET_X_MSB_ADDR, 1, bytes([(mag_offset[0] >> 8) & 0xFF]))
+            self.con.transmit(registers.MAG_OFFSET_Y_LSB_ADDR, 1, bytes([mag_offset[1] & 0xFF]))
+            self.con.transmit(registers.MAG_OFFSET_Y_MSB_ADDR, 1, bytes([(mag_offset[1] >> 8) & 0xFF]))
+            self.con.transmit(registers.MAG_OFFSET_Z_LSB_ADDR, 1, bytes([mag_offset[2] & 0xFF]))
+            self.con.transmit(registers.MAG_OFFSET_Z_MSB_ADDR, 1, bytes([(mag_offset[2] >> 8) & 0xFF]))
 
-            self.con.transmit(registers.GYR_OFFSET, 1, bytes([gyr_offset[0] & 0xFF]))
-            self.con.transmit(registers.GYR_OFFSET + 1, 1, bytes([(gyr_offset[0] >> 8) & 0xFF]))
-            self.con.transmit(registers.GYR_OFFSET + 2, 1, bytes([gyr_offset[1] & 0xFF]))
-            self.con.transmit(registers.GYR_OFFSET + 3, 1, bytes([(gyr_offset[1] >> 8) & 0xFF]))
-            self.con.transmit(registers.GYR_OFFSET + 4, 1, bytes([gyr_offset[2] & 0xFF]))
-            self.con.transmit(registers.GYR_OFFSET + 5, 1, bytes([(gyr_offset[2] >> 8) & 0xFF]))
+            self.con.transmit(registers.GYRO_OFFSET_X_LSB_ADDR, 1, bytes([gyr_offset[0] & 0xFF]))
+            self.con.transmit(registers.GYRO_OFFSET_X_MSB_ADDR, 1, bytes([(gyr_offset[0] >> 8) & 0xFF]))
+            self.con.transmit(registers.GYRO_OFFSET_Y_LSB_ADDR, 1, bytes([gyr_offset[1] & 0xFF]))
+            self.con.transmit(registers.GYRO_OFFSET_Y_MSB_ADDR, 1, bytes([(gyr_offset[1] >> 8) & 0xFF]))
+            self.con.transmit(registers.GYRO_OFFSET_Z_LSB_ADDR, 1, bytes([gyr_offset[2] & 0xFF]))
+            self.con.transmit(registers.GYRO_OFFSET_Z_MSB_ADDR, 1, bytes([(gyr_offset[2] >> 8) & 0xFF]))
             return True
         except Exception:  # noqa: B902
             return False
+
+    def unpackBytesToFloat(self, start, end):
+        return float(struct.unpack('h', struct.pack('BB', start, end))[0])
