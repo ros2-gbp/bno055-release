@@ -1,3 +1,4 @@
+release_repo_url: git@github.com:ros2-gbp/bno055-release.git
 tracks:
   foxy:
     actions:
