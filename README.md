@@ -1,3 +1,26 @@
+## bno055 (rolling) - 0.2.0-2
+
+The packages in the `bno055` repository were released into the `rolling` distro by running `/usr/bin/bloom-release -r rolling bno055 --override-release-repository-url https://github.com/ros2-gbp/bno055-release.git --override-release-repository-push-url git@github.com:ros2-gbp/bno055-release.git` on `Fri, 10 Dec 2021 03:04:05 -0000`
+
+The `bno055` package was released.
+
+Version of package(s) in repository `bno055`:
+
+- upstream repository: https://github.com/flynneva/bno055.git
+- release repository: https://github.com/flynneva/bno055-release.git
+- rosdistro version: `0.2.0-1`
+- old version: `0.2.0-1`
+- new version: `0.2.0-2`
+
+Versions of tools used:
+
+- bloom version: `0.10.7`
+- catkin_pkg version: `0.4.24`
+- rosdep version: `0.21.0`
+- rosdistro version: `0.8.3`
+- vcstools version: `0.1.42`
+
+
 ## bno055 (rolling) - 0.2.0-1
 
 The packages in the `bno055` repository were released into the `rolling` distro by running `/usr/bin/bloom-release -r rolling bno055 --override-release-repository-url git@github.com:ros2-gbp/bno055-release.git` on `Fri, 10 Dec 2021 02:54:16 -0000`
