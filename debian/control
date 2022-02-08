@@ -1,0 +1,12 @@
+Source: ros-rolling-bno055
+Section: misc
+Priority: optional
+Maintainer: flynneva <evanflynn.msu@gmail.com>
+Build-Depends: debhelper (>= 9.0.0), python3-pytest, python3-serial, ros-rolling-ament-copyright, ros-rolling-ament-flake8, ros-rolling-ament-pep257, ros-rolling-ros-workspace, python3-all, python3-setuptools
+Homepage: 
+Standards-Version: 3.9.2
+
+Package: ros-rolling-bno055
+Architecture: any
+Depends: ${python3:Depends}, ${misc:Depends}, python3-serial, ros-rolling-rclpy, ros-rolling-std-msgs, ros-rolling-ros-workspace
+Description: Bosch BNO055 IMU driver for ROS2
