@@ -1,0 +1,12 @@
+Source: ros-humble-bno055
+Section: misc
+Priority: optional
+Maintainer: flynneva <evanflynn.msu@gmail.com>
+Build-Depends: debhelper (>= 9.0.0), python3-pytest <!nocheck>, python3-serial, ros-humble-ament-copyright <!nocheck>, ros-humble-ament-flake8 <!nocheck>, ros-humble-ament-pep257 <!nocheck>, ros-humble-ros-workspace, python3-all, python3-setuptools, dh-python
+Homepage: 
+Standards-Version: 3.9.2
+
+Package: ros-humble-bno055
+Architecture: any
+Depends: ${python3:Depends}, ${misc:Depends}, python3-serial, ros-humble-rclpy, ros-humble-std-msgs, ros-humble-ros-workspace
+Description: Bosch BNO055 IMU driver for ROS2
