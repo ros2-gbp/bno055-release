@@ -28,6 +28,7 @@
 
 
 from bno055.connectors.uart import UART
+from bno055.connectors.i2c import I2C
 from bno055 import registers
 from rclpy.node import Node
 
@@ -54,6 +55,10 @@ class NodeParameters:
         node.declare_parameter(name='ros_topic_prefix', value='bno055/')
         # The type of the sensor connection. Either "uart" or "i2c":
         node.declare_parameter(name='connection_type', value=UART.CONNECTIONTYPE_UART)
+        # I2C bus number
+        node.declare_parameter('i2c_bus', value=0)
+        # I2C address
+        node.declare_parameter('i2c_addr', value=0x28)
         # UART port
         node.declare_parameter('uart_port', value='/dev/ttyUSB0')
         # UART Baud Rate
@@ -84,6 +89,10 @@ class NodeParameters:
         node.declare_parameter('offset_mag', value=registers.DEFAULT_OFFSET_MAG)
         # +/- 2000 units up to 32000 (dps range dependent)               (1 unit = 1/16 dps)
         node.declare_parameter('offset_gyr', value=registers.DEFAULT_OFFSET_GYR)
+        # +/-1000 units
+        node.declare_parameter('radius_acc', value=registers.DEFAULT_RADIUS_ACC)
+        #  +/-960 units
+        node.declare_parameter('radius_mag', value=registers.DEFAULT_RADIUS_MAG)
         # Sensor standard deviation squared (^2) defaults [x, y, z]
         node.declare_parameter('variance_acc', value=registers.DEFAULT_VARIANCE_ACC)
         node.declare_parameter('variance_angular_vel', value=registers.DEFAULT_VARIANCE_ANGULAR_VEL)
@@ -100,14 +109,24 @@ class NodeParameters:
             self.connection_type = node.get_parameter('connection_type')
             node.get_logger().info('\tconnection_type:\t"%s"' % self.connection_type.value)
 
-            self.uart_port = node.get_parameter('uart_port')
-            node.get_logger().info('\tuart_port:\t\t"%s"' % self.uart_port.value)
+            if self.connection_type == I2C.CONNECTIONTYPE_I2C:
 
-            self.uart_baudrate = node.get_parameter('uart_baudrate')
-            node.get_logger().info('\tuart_baudrate:\t\t"%s"' % self.uart_baudrate.value)
+                self.i2c_bus = node.get_parameter('i2c_bus')
+                node.get_logger().info('\ti2c_bus:\t\t"%s"' % self.i2c_bus.value)
 
-            self.uart_timeout = node.get_parameter('uart_timeout')
-            node.get_logger().info('\tuart_timeout:\t\t"%s"' % self.uart_timeout.value)
+                self.i2c_addr = node.get_parameter('i2c_addr')
+                node.get_logger().info('\ti2c_addr:\t\t"%s"' % self.i2c_addr.value)
+
+            elif self.connection_type == UART.CONNECTIONTYPE_UART:
+
+                self.uart_port = node.get_parameter('uart_port')
+                node.get_logger().info('\tuart_port:\t\t"%s"' % self.uart_port.value)
+
+                self.uart_baudrate = node.get_parameter('uart_baudrate')
+                node.get_logger().info('\tuart_baudrate:\t\t"%s"' % self.uart_baudrate.value)
+
+                self.uart_timeout = node.get_parameter('uart_timeout')
+                node.get_logger().info('\tuart_timeout:\t\t"%s"' % self.uart_timeout.value)
 
             self.frame_id = node.get_parameter('frame_id')
             node.get_logger().info('\tframe_id:\t\t"%s"' % self.frame_id.value)
@@ -142,8 +161,14 @@ class NodeParameters:
             self.offset_acc = node.get_parameter('offset_acc')
             node.get_logger().info('\toffset_acc:\t\t"%s"' % self.offset_acc.value)
 
+            self.radius_acc = node.get_parameter('radius_acc')
+            node.get_logger().info('\tradius_acc:\t\t"%s"' % self.radius_acc.value)
+
             self.offset_mag = node.get_parameter('offset_mag')
             node.get_logger().info('\toffset_mag:\t\t"%s"' % self.offset_mag.value)
+
+            self.radius_mag = node.get_parameter('radius_mag')
+            node.get_logger().info('\tradius_mag:\t\t"%s"' % self.radius_mag.value)
 
             self.offset_gyr = node.get_parameter('offset_gyr')
             node.get_logger().info('\toffset_gyr:\t\t"%s"' % self.offset_gyr.value)

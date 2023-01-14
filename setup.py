@@ -1,3 +1,5 @@
+import os
+from glob import glob
 from setuptools import find_packages
 from setuptools import setup
 
@@ -5,7 +7,7 @@ package_name = 'bno055'
 
 setup(
     name=package_name,
-    version='0.2.0',
+    version='0.4.0.',
     # find sub-packages automatically in order to allow sub-modules, etc. to be imported:
     # packages=[package_name],
     packages=find_packages(exclude=['test']),
@@ -16,6 +18,8 @@ setup(
         ('share/ament_index/resource_index/packages',
          ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        (os.path.join('share', package_name, 'launch'), glob('launch/*.launch.py')),
+        (os.path.join('share', package_name, 'config'), glob('bno055/params/*.yaml'))
     ],
     install_requires=['setuptools'],
     zip_safe=True,
