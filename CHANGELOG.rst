@@ -2,6 +2,78 @@
 Changelog for package bno055
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.4.0
+-----------
+* Update CHANGELOG for new release
+* Improve the doc strings for the connectors
+* Add I2C implementation (`#52 <https://github.com/flynneva/bno055/issues/52>`_)
+  * Add I2C implementation
+  * Updates after review
+  * Revert one file change
+  * Add newline
+  * Revert to UART as default
+  * Fix typo
+  * nit
+* Merge pull request `#50 <https://github.com/flynneva/bno055/issues/50>`_ from flynneva/fix-invalid-log-print
+  Fix invalid log string variable expansion
+* Update CI to include Humble
+* Fix invalid log string variable expansion
+* Merge pull request `#49 <https://github.com/flynneva/bno055/issues/49>`_ from sjev/operation_mode
+* add device mode setting
+* Contributors: Andrew Symington, Evan Flynn, Jev Kuznetsov
+
+Forthcoming
+-----------
+* Bump version for new release
+* Update CHANGELOG for new release
+* Improve the doc strings for the connectors
+* Add I2C implementation (`#52 <https://github.com/flynneva/bno055/issues/52>`_)
+  * Add I2C implementation
+  * Updates after review
+  * Revert one file change
+  * Add newline
+  * Revert to UART as default
+  * Fix typo
+  * nit
+* Merge pull request `#50 <https://github.com/flynneva/bno055/issues/50>`_ from flynneva/fix-invalid-log-print
+  Fix invalid log string variable expansion
+* Update CI to include Humble
+* Fix invalid log string variable expansion
+* Merge pull request `#49 <https://github.com/flynneva/bno055/issues/49>`_ from sjev/operation_mode
+* add device mode setting
+* Contributors: Andrew Symington, Evan Flynn, Jev Kuznetsov
+
+0.3.0
+-----------
+* Merge pull request `#43 <https://github.com/flynneva/bno055/issues/43>`_ from flynneva/develop
+  bring over updates
+* Merge pull request `#44 <https://github.com/flynneva/bno055/issues/44>`_ from Towflos/develop
+* fixed setting of calibration data, added default values for mag and acc radius
+* added example_interfaces to package.xml, added service information to README.md
+* cleanup
+* prefix added to service
+* removed seq, fixed parameters, refactored reading of calibratio data, added service to request calibration data
+* added seq and time to message headers
+* mag_radius and accel_radius added to get_calib_offsets()
+* mag radius and acc radius added as parameter
+* fix greetings for incoming PRs from forks
+  see [this nice write up](https://github.com/SalesforceLabs/LightningWebChartJS/pull/95) for details
+* Merge pull request `#42 <https://github.com/flynneva/bno055/issues/42>`_ from deepinbubblegum/launch_develop
+  Launch develop
+* edit readme launch file
+* add launch file
+* Merge pull request `#41 <https://github.com/flynneva/bno055/issues/41>`_ from flynneva/develop
+  bring over 0.2.0 updates to main
+* Merge pull request `#32 <https://github.com/flynneva/bno055/issues/32>`_ from flynneva/develop
+  initial docs up and running
+* Merge pull request `#31 <https://github.com/flynneva/bno055/issues/31>`_ from flynneva/develop
+  source galactic not rolling
+* Merge pull request `#30 <https://github.com/flynneva/bno055/issues/30>`_ from flynneva/develop
+  dont use forked repo for setup-ros
+* Merge pull request `#29 <https://github.com/flynneva/bno055/issues/29>`_ from flynneva/develop
+  fix setup-ros version to 0.2
+* Contributors: Evan Flynn, Florian Herrmann, deepinbubblegum
+
 0.2.0 (2021-12-6)
 -----------------
 * Merge pull request `#36 <https://github.com/flynneva/bno055/issues/36>`_ from flynneva/feature/add-covariance
