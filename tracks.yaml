@@ -103,4 +103,5 @@ tracks:
     ros_distro: rolling
     vcs_type: git
     vcs_uri: https://github.com/flynneva/bno055.git
-    version: :{auto}
+    version: 0.4.1
+    version_saved: :{auto}
