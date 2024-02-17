@@ -1,3 +1,26 @@
+## bno055 (iron) - 0.5.0-1
+
+The packages in the `bno055` repository were released into the `iron` distro by running `/usr/bin/bloom-release --ros-distro iron --track iron bno055` on `Sat, 17 Feb 2024 17:34:06 -0000`
+
+The `bno055` package was released.
+
+Version of package(s) in repository `bno055`:
+
+- upstream repository: https://github.com/flynneva/bno055.git
+- release repository: https://github.com/ros2-gbp/bno055-release.git
+- rosdistro version: `0.4.1-4`
+- old version: `0.4.1-4`
+- new version: `0.5.0-1`
+
+Versions of tools used:
+
+- bloom version: `0.11.2`
+- catkin_pkg version: `1.0.0`
+- rosdep version: `0.22.2`
+- rosdistro version: `0.9.0`
+- vcstools version: `0.1.42`
+
+
 ## bno055 (rolling) - 0.5.0-1
 
 The packages in the `bno055` repository were released into the `rolling` distro by running `/usr/bin/bloom-release --ros-distro rolling --track rolling bno055` on `Sat, 17 Feb 2024 17:16:53 -0000`
