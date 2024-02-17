@@ -79,6 +79,7 @@ ROS topics published by this ROS2 Node:
   - **bno055/imu_raw** [(sensor_msgs/Imu)](http://docs.ros.org/api/sensor_msgs/html/msg/Imu.html)
   - **bno055/temp** [(sensor_msgs/Temperature)](http://docs.ros.org/api/sensor_msgs/html/msg/Temperature.html); The sensor's ambient temperature
   - **bno055/mag** [(sensor_msgs/MagneticField)](http://docs.ros.org/api/sensor_msgs/html/msg/MagneticField.html)
+  - **bno055/grav** [(geometry_msgs/Vector3)](http://docs.ros.org/en/api/geometry_msgs/html/msg/Vector3.html)
   - **bno055/calib_status** [(std_msgs/String)](http://docs.ros.org/en/api/std_msgs/html/msg/String.html) : 
   Sensor Calibration Status as JSON string - e.g. `{"sys": 3, "gyro": 3, "accel": 0, "mag": 3}`
   
@@ -142,11 +143,11 @@ Run launch file:
 
 ### Performing flake8 Linting
 
-To perform code linting with [flake8](https://gitlab.com/pycqa/flake8) just perform:
+To perform code linting with [flake8](https://gitlab.com/pycqa/flake8), just perform:
 
     cd ~/ros2_ws/src/bno055
     ament_flake8
 
 See [www.flake8rules.com](https://www.flake8rules.com/) for more detailed information about flake8 rules.
 
-**Note:** we take advantage of [flake8's noqa mechanisim](https://flake8.pycqa.org/en/3.1.1/user/ignoring-errors.html) to selectively ignore some errors. Just search for `# noqa:` in the source code to find them.
+**Note:** We take advantage of [flake8's noqa mechanisim](https://flake8.pycqa.org/en/3.1.1/user/ignoring-errors.html) to selectively ignore some errors. Just search for `# noqa:` in the source code to find them.
