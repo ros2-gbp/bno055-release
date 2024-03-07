@@ -1,3 +1,26 @@
+## bno055 (rolling) - 0.5.0-2
+
+The packages in the `bno055` repository were released into the `rolling` distro by running `/usr/bin/bloom-release --track rolling --rosdistro rolling bno055` on `Thu, 07 Mar 2024 12:39:30 -0000`
+
+The `bno055` package was released.
+
+Version of package(s) in repository `bno055`:
+
+- upstream repository: https://github.com/flynneva/bno055.git
+- release repository: https://github.com/ros2-gbp/bno055-release.git
+- rosdistro version: `null`
+- old version: `0.5.0-1`
+- new version: `0.5.0-2`
+
+Versions of tools used:
+
+- bloom version: `0.11.2`
+- catkin_pkg version: `1.0.0`
+- rosdep version: `0.22.2`
+- rosdistro version: `0.9.0`
+- vcstools version: `0.1.42`
+
+
 ## bno055 (humble) - 0.5.0-1
 
 The packages in the `bno055` repository were released into the `humble` distro by running `/usr/bin/bloom-release --ros-distro humble --track humble bno055` on `Sat, 17 Feb 2024 17:37:02 -0000`
