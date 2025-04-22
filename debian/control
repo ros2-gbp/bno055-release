@@ -1,0 +1,12 @@
+Source: ros-kilted-bno055
+Section: misc
+Priority: optional
+Maintainer: flynneva <evanflynn.msu@gmail.com>
+Build-Depends: debhelper (>= 9.0.0), python3-pytest <!nocheck>, python3-serial, python3-smbus, ros-kilted-ament-copyright <!nocheck>, ros-kilted-ament-flake8 <!nocheck>, ros-kilted-ament-pep257 <!nocheck>, ros-kilted-ros-workspace, python3-all, python3-setuptools, dh-python
+Homepage: 
+Standards-Version: 3.9.2
+
+Package: ros-kilted-bno055
+Architecture: any
+Depends: ${python3:Depends}, ${misc:Depends}, python3-serial, python3-smbus, ros-kilted-example-interfaces, ros-kilted-rclpy, ros-kilted-std-msgs, ros-kilted-ros-workspace
+Description: Bosch BNO055 IMU driver for ROS2
